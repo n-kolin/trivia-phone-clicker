@@ -1,6 +1,7 @@
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import cors from 'cors';
 import { config } from './config';
 import webhookHandler from './routes/webhookHandler';
 import authRoutes from './routes/authRoutes';
@@ -17,6 +18,7 @@ const io = new Server(httpServer, {
 
 quizManager.initialize(io);
 
+app.use(cors({ origin: '*' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

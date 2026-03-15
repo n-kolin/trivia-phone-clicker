@@ -2,7 +2,16 @@ import Redis from 'ioredis';
 import { SessionRecord } from '@trivia/shared';
 import { config } from '../config';
 
-export const redis = new Redis(config.redisUrl);
+const redisUrl = config.redisUrl;
+console.log('[Redis] Connecting to:', redisUrl.replace(/:([^@]+)@/, ':***@'));
+console.log('[Redis] URL starts with rediss://', redisUrl.startsWith('rediss://'));
+
+export const redis = redisUrl.startsWith('rediss://')
+  ? new Redis(redisUrl, { tls: { rejectUnauthorized: false } })
+  : new Redis(redisUrl);
+
+redis.on('connect', () => console.log('[Redis] Connected successfully'));
+redis.on('error', (err) => console.error('[Redis] Error:', JSON.stringify(err), err.stack));
 
 export const SESSION_PREFIX = 'session:';
 export const SESSION_TTL = 86400; // 24 hours in seconds

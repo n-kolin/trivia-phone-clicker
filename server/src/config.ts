@@ -1,6 +1,12 @@
 import dotenv from 'dotenv';
+import path from 'path';
 
-dotenv.config();
+// Load .env from project root (3 levels up from server/src/config.ts)
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+
+console.log('[Config] Loading .env from:', path.resolve(__dirname, '../../.env'));
+console.log('[Config] REDIS_URL loaded:', process.env.REDIS_URL ? 'YES' : 'NO');
+console.log('[Config] REDIS_URL value:', process.env.REDIS_URL?.substring(0, 20) + '...');
 
 export const config = {
   port: parseInt(process.env.PORT || '3000', 10),
