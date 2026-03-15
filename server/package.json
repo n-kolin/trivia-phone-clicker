@@ -4,7 +4,7 @@
   "description": "Phone Trivia Clicker - Backend Server",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && tsc-alias",
     "start": "node dist/index.js",
     "dev": "ts-node-dev --respawn src/index.ts",
     "test": "jest --runInBand",
@@ -36,7 +36,8 @@
     "supertest": "^7.0.0",
     "ts-jest": "^29.2.2",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.5.3"
+    "typescript": "^5.5.3",
+    "tsc-alias": "^1.8.10"
   },
   "jest": {
     "preset": "ts-jest",
