@@ -1,4 +1,4 @@
-import { Quiz, QuizQuestion, ApiError, ErrorCodes } from '../../../shared/types/index';
+import { Quiz, QuizQuestion, ApiError, ErrorCodes } from '@trivia/shared';
 import { query, getClient } from '../db/db';
 
 export interface CreateQuizDto {

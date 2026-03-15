@@ -14,7 +14,8 @@
     "declarationMap": true,
     "sourceMap": true,
     "paths": {
-      "@shared/*": ["../shared/*"]
+      "@trivia/shared": ["../shared/src/index.ts"],
+      "@shared/*": ["../shared/src/*"]
     },
     "baseUrl": "."
   },

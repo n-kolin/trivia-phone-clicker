@@ -2,7 +2,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { query } from '../db/db';
 import { config } from '../config';
-import { User } from '../../../shared/types/index';
+import { User } from '@trivia/shared';
 
 export async function registerUser(username: string, password: string): Promise<User> {
   const passwordHash = await bcrypt.hash(password, config.security.bcryptRounds);

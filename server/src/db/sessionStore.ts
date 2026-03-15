@@ -1,5 +1,5 @@
 import Redis from 'ioredis';
-import { SessionRecord } from '../../../shared/types';
+import { SessionRecord } from '@trivia/shared';
 import { config } from '../config';
 
 export const redis = new Redis(config.redisUrl);
