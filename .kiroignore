@@ -1,0 +1,6 @@
+# קבצים חסויים - אל תשלח ל-Kiro
+server/.env
+client/.env
+.env
+*.env
+node_modules/

@@ -1,0 +1,53 @@
+{
+  "name": "trivia-phone-clicker-server",
+  "version": "1.0.0",
+  "description": "Phone Trivia Clicker - Backend Server",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node-dev --respawn src/index.ts",
+    "test": "jest --runInBand",
+    "test:run": "jest --runInBand --forceExit"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "dotenv": "^16.6.1",
+    "express": "^4.19.2",
+    "ioredis": "^5.3.2",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.12.0",
+    "socket.io": "^4.7.5",
+    "twilio": "^5.2.3",
+    "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/express": "^4.17.21",
+    "@types/jest": "^29.5.12",
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/node": "^20.14.9",
+    "@types/pg": "^8.11.6",
+    "@types/supertest": "^6.0.2",
+    "@types/uuid": "^10.0.0",
+    "fast-check": "^3.20.0",
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0",
+    "ts-jest": "^29.2.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.5.3"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "roots": [
+      "<rootDir>/src"
+    ],
+    "testMatch": [
+      "**/*.test.ts"
+    ],
+    "moduleNameMapper": {
+      "^@shared/(.*)$": "<rootDir>/../shared/$1"
+    }
+  }
+}
