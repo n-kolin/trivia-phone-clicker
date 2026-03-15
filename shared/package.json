@@ -2,6 +2,6 @@
   "name": "@trivia/shared",
   "version": "1.0.0",
   "description": "Shared types for Phone Trivia Clicker",
-  "main": "types/index.ts",
-  "types": "types/index.ts"
+  "main": "types/index.js",
+  "types": "types/index.d.ts"
 }
