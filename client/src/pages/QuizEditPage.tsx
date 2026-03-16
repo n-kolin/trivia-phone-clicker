@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { startQuiz } from '../api';
+import { startQuiz, getParticipants, addParticipant, deleteParticipant } from '../api';
 
 const BASE = process.env.REACT_APP_API_URL || 'http://localhost:3000';
 function authHeaders() {
@@ -9,8 +9,11 @@ function authHeaders() {
 }
 
 interface AnswerOption { digit: number; text: string; }
-interface Question { id?: string; text: string; options: AnswerOption[]; correctAnswer: number; saved?: boolean; }
+interface Question { id?: string; text: string; options: AnswerOption[]; correctAnswer: number; }
 interface Quiz { id: string; name: string; status: string; questions: { questionId: string; order: number }[]; }
+interface Participant { id: string; name: string; phone: string; }
+
+type Tab = 'questions' | 'participants';
 
 export default function QuizEditPage() {
   const { quizId } = useParams<{ quizId: string }>();
@@ -18,14 +21,24 @@ export default function QuizEditPage() {
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [savedQuestions, setSavedQuestions] = useState<Question[]>([]);
   const [pendingQuestions, setPendingQuestions] = useState<Question[]>([]);
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [tab, setTab] = useState<Tab>('questions');
 
-  // form state
+  // question form
   const [text, setText] = useState('');
   const [options, setOptions] = useState(['', '', '', '']);
   const [correct, setCorrect] = useState(1);
   const [optCount, setOptCount] = useState(4);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  // participant form
+  const [pName, setPName] = useState('');
+  const [pPhone, setPPhone] = useState('');
+  const [pLoading, setPLoading] = useState(false);
+  const [pError, setPError] = useState('');
+
+  const registerUrl = `${window.location.origin}/register/${quizId}`;
 
   async function loadQuiz() {
     const q = await fetch(`${BASE}/api/quizzes/${quizId}`, { headers: authHeaders() }).then(r => r.json());
@@ -34,10 +47,20 @@ export default function QuizEditPage() {
       const qs = await fetch(`${BASE}/api/questions`, { headers: authHeaders() }).then(r => r.json());
       const quizQIds = q.questions.map((qq: { questionId: string }) => qq.questionId);
       setSavedQuestions(qs.filter((qq: Question & { id: string }) => quizQIds.includes(qq.id)));
+    } else {
+      setSavedQuestions([]);
     }
   }
 
-  useEffect(() => { loadQuiz(); }, [quizId]);
+  async function loadParticipants() {
+    const ps = await getParticipants(quizId!);
+    setParticipants(ps);
+  }
+
+  useEffect(() => {
+    loadQuiz();
+    loadParticipants();
+  }, [quizId]);
 
   function handleAddToPending(e: React.FormEvent) {
     e.preventDefault();
@@ -48,15 +71,13 @@ export default function QuizEditPage() {
 
   async function handleSaveAll() {
     if (pendingQuestions.length === 0) return;
-    setSaving(true);
-    setError('');
+    setSaving(true); setError('');
     try {
-      const currentOrder = (quiz?.questions?.length || 0) + savedQuestions.length;
+      const currentOrder = savedQuestions.length;
       for (let i = 0; i < pendingQuestions.length; i++) {
         const q = pendingQuestions[i];
         const created = await fetch(`${BASE}/api/questions`, {
-          method: 'POST', headers: authHeaders(),
-          body: JSON.stringify(q)
+          method: 'POST', headers: authHeaders(), body: JSON.stringify(q)
         }).then(r => r.json());
         await fetch(`${BASE}/api/quizzes/${quizId}/questions`, {
           method: 'POST', headers: authHeaders(),
@@ -70,131 +91,171 @@ export default function QuizEditPage() {
   }
 
   async function handleRemoveSaved(questionId: string) {
-    await fetch(`${BASE}/api/quizzes/${quizId}/questions/${questionId}`, {
-      method: 'DELETE', headers: authHeaders()
-    });
+    await fetch(`${BASE}/api/quizzes/${quizId}/questions/${questionId}`, { method: 'DELETE', headers: authHeaders() });
     await loadQuiz();
   }
 
   async function handleStart() {
     if (pendingQuestions.length > 0) await handleSaveAll();
-    await startQuiz(quizId!);
-    navigate(`/dashboard/${quizId}`);
+    navigate(`/quiz/${quizId}/lobby`);
+  }
+
+  async function handleAddParticipant(e: React.FormEvent) {
+    e.preventDefault();
+    setPLoading(true); setPError('');
+    try {
+      await addParticipant(quizId!, { name: pName.trim(), phone: pPhone.trim() });
+      setPName(''); setPPhone('');
+      await loadParticipants();
+    } catch { setPError('שגיאה בהוספת משתתף'); }
+    setPLoading(false);
+  }
+
+  async function handleDeleteParticipant(pid: string) {
+    await deleteParticipant(quizId!, pid);
+    await loadParticipants();
   }
 
   const totalQuestions = savedQuestions.length + pendingQuestions.length;
-
   if (!quiz) return <div style={{ padding: 40, textAlign: 'center' }}>טוען...</div>;
 
   return (
-    <div style={styles.page}>
-      <nav style={styles.nav}>
-        <button onClick={() => navigate('/quizzes')} style={styles.backBtn}>← חזור</button>
-        <span style={styles.title}>{quiz.name} — {totalQuestions} שאלות</span>
-        <button onClick={handleStart} style={styles.startBtn} disabled={totalQuestions === 0}>
+    <div style={s.page}>
+      <nav style={s.nav}>
+        <button onClick={() => navigate('/quizzes')} style={s.backBtn}>← חזור</button>
+        <span style={s.title}>{quiz.name}</span>
+        <button onClick={handleStart} style={s.startBtn} disabled={totalQuestions === 0}>
           התחל חידון ▶
         </button>
       </nav>
 
-      <div style={styles.container}>
-        <div style={styles.split}>
-          {/* Form */}
-          <div style={styles.card}>
-            <h3>הוסף שאלה</h3>
-            <form onSubmit={handleAddToPending} style={styles.form}>
-              <textarea
-                placeholder="נוסח השאלה"
-                value={text}
-                onChange={e => setText(e.target.value)}
-                required
-                style={{ ...styles.input, minHeight: 70, resize: 'vertical' }}
-              />
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <label>אפשרויות:</label>
-                <select value={optCount} onChange={e => setOptCount(Number(e.target.value))} style={styles.select}>
-                  {[2, 3, 4].map(n => <option key={n} value={n}>{n}</option>)}
-                </select>
-              </div>
-              {options.slice(0, optCount).map((opt, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ ...styles.digit, background: i + 1 === correct ? '#28a745' : '#007bff' }}>{i + 1}</span>
-                  <input
-                    placeholder={`אפשרות ${i + 1}`}
-                    value={opt}
-                    onChange={e => { const o = [...options]; o[i] = e.target.value; setOptions(o); }}
-                    required
-                    style={{ ...styles.input, flex: 1 }}
-                  />
+      {/* Tabs */}
+      <div style={s.tabs}>
+        <button onClick={() => setTab('questions')} style={{ ...s.tab, ...(tab === 'questions' ? s.tabActive : {}) }}>
+          📝 שאלות ({totalQuestions})
+        </button>
+        <button onClick={() => setTab('participants')} style={{ ...s.tab, ...(tab === 'participants' ? s.tabActive : {}) }}>
+          👥 משתתפים ({participants.length})
+        </button>
+      </div>
+
+      <div style={s.container}>
+        {tab === 'questions' && (
+          <div style={s.split}>
+            {/* Question form */}
+            <div style={s.card}>
+              <h3>הוסף שאלה</h3>
+              <form onSubmit={handleAddToPending} style={s.form}>
+                <textarea placeholder="נוסח השאלה" value={text} onChange={e => setText(e.target.value)} required style={{ ...s.input, minHeight: 70, resize: 'vertical' }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <label>אפשרויות:</label>
+                  <select value={optCount} onChange={e => setOptCount(Number(e.target.value))} style={s.select}>
+                    {[2, 3, 4].map(n => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                </div>
+                {options.slice(0, optCount).map((opt, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ ...s.digit, background: i + 1 === correct ? '#28a745' : '#007bff' }}>{i + 1}</span>
+                    <input placeholder={`אפשרות ${i + 1}`} value={opt} onChange={e => { const o = [...options]; o[i] = e.target.value; setOptions(o); }} required style={{ ...s.input, flex: 1 }} />
+                  </div>
+                ))}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <label>תשובה נכונה:</label>
+                  <select value={correct} onChange={e => setCorrect(Number(e.target.value))} style={s.select}>
+                    {Array.from({ length: optCount }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
+                  </select>
+                </div>
+                <button type="submit" style={s.addBtn}>+ הוסף לרשימה</button>
+              </form>
+              {pendingQuestions.length > 0 && (
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ background: '#fff3cd', padding: 12, borderRadius: 4, marginBottom: 8 }}>{pendingQuestions.length} שאלות ממתינות לשמירה</div>
+                  {error && <p style={{ color: 'red' }}>{error}</p>}
+                  <button onClick={handleSaveAll} disabled={saving} style={s.saveBtn}>{saving ? 'שומר...' : `💾 שמור ${pendingQuestions.length} שאלות`}</button>
+                </div>
+              )}
+            </div>
+
+            {/* Questions list */}
+            <div style={s.card}>
+              <h3>שאלות ({totalQuestions})</h3>
+              {totalQuestions === 0 && <p style={{ color: '#888', textAlign: 'center', padding: 20 }}>הוסף שאלות מהטופס</p>}
+              {savedQuestions.map((q, i) => (
+                <div key={q.id} style={s.qRow}>
+                  <div style={{ flex: 1 }}>
+                    <strong>{i + 1}. {q.text}</strong>
+                    <div>{q.options.map(o => <span key={o.digit} style={{ marginLeft: 8, fontSize: 13, color: o.digit === q.correctAnswer ? '#28a745' : '#666' }}>{o.digit === q.correctAnswer ? '✓' : '○'} {o.text}</span>)}</div>
+                  </div>
+                  <button onClick={() => handleRemoveSaved(q.id!)} style={s.removeBtn}>✕</button>
                 </div>
               ))}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <label>תשובה נכונה:</label>
-                <select value={correct} onChange={e => setCorrect(Number(e.target.value))} style={styles.select}>
-                  {Array.from({ length: optCount }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
-                </select>
-              </div>
-              <button type="submit" style={styles.addBtn}>+ הוסף לרשימה</button>
-            </form>
-
-            {pendingQuestions.length > 0 && (
-              <div style={{ marginTop: 16 }}>
-                <div style={{ background: '#fff3cd', padding: 12, borderRadius: 4, marginBottom: 8 }}>
-                  {pendingQuestions.length} שאלות ממתינות לשמירה
+              {pendingQuestions.map((q, i) => (
+                <div key={i} style={{ ...s.qRow, background: '#f8f9fa', border: '1px dashed #ccc' }}>
+                  <div style={{ flex: 1 }}>
+                    <span style={{ fontSize: 11, color: '#888' }}>לא נשמר</span>
+                    <strong style={{ display: 'block' }}>{savedQuestions.length + i + 1}. {q.text}</strong>
+                    <div>{q.options.map(o => <span key={o.digit} style={{ marginLeft: 8, fontSize: 13, color: o.digit === q.correctAnswer ? '#28a745' : '#666' }}>{o.digit === q.correctAnswer ? '✓' : '○'} {o.text}</span>)}</div>
+                  </div>
+                  <button onClick={() => setPendingQuestions(prev => prev.filter((_, j) => j !== i))} style={s.removeBtn}>✕</button>
                 </div>
-                {error && <p style={{ color: 'red' }}>{error}</p>}
-                <button onClick={handleSaveAll} disabled={saving} style={styles.saveBtn}>
-                  {saving ? 'שומר...' : `💾 שמור ${pendingQuestions.length} שאלות`}
-                </button>
-              </div>
-            )}
+              ))}
+            </div>
           </div>
+        )}
 
-          {/* Questions list */}
-          <div style={styles.card}>
-            <h3>שאלות ({totalQuestions})</h3>
-            {totalQuestions === 0 && <p style={{ color: '#888', textAlign: 'center', padding: 20 }}>הוסף שאלות מהטופס</p>}
+        {tab === 'participants' && (
+          <div style={s.split}>
+            {/* Add participant form */}
+            <div style={s.card}>
+              <h3>הוסף משתתף</h3>
+              <form onSubmit={handleAddParticipant} style={s.form}>
+                <input placeholder="שם מלא" value={pName} onChange={e => setPName(e.target.value)} required style={s.input} />
+                <input placeholder="מספר טלפון" value={pPhone} onChange={e => setPPhone(e.target.value)} required style={s.input} dir="ltr" />
+                {pError && <p style={{ color: 'red', margin: 0 }}>{pError}</p>}
+                <button type="submit" disabled={pLoading} style={s.addBtn}>{pLoading ? 'מוסיף...' : '+ הוסף משתתף'}</button>
+              </form>
 
-            {savedQuestions.map((q, i) => (
-              <div key={q.id} style={styles.qRow}>
-                <div style={{ flex: 1 }}>
-                  <strong>{i + 1}. {q.text}</strong>
-                  <div>{q.options.map(o => (
-                    <span key={o.digit} style={{ marginLeft: 8, fontSize: 13, color: o.digit === q.correctAnswer ? '#28a745' : '#666' }}>
-                      {o.digit === q.correctAnswer ? '✓' : '○'} {o.text}
-                    </span>
-                  ))}</div>
+              <div style={{ marginTop: 24, padding: 16, background: '#f0f7ff', borderRadius: 8 }}>
+                <p style={{ margin: '0 0 8px', fontWeight: 'bold', fontSize: 14 }}>🔗 קישור הרשמה עצמית:</p>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input value={registerUrl} readOnly style={{ ...s.input, fontSize: 12, flex: 1 }} dir="ltr" />
+                  <button onClick={() => navigator.clipboard.writeText(registerUrl)} style={{ ...s.addBtn, padding: '9px 12px', whiteSpace: 'nowrap' }}>העתק</button>
                 </div>
-                <button onClick={() => handleRemoveSaved(q.id!)} style={styles.removeBtn}>✕</button>
+                <p style={{ margin: '8px 0 0', fontSize: 12, color: '#666' }}>שלח קישור זה למשתתפים להרשמה עצמית</p>
               </div>
-            ))}
+            </div>
 
-            {pendingQuestions.map((q, i) => (
-              <div key={i} style={{ ...styles.qRow, background: '#f8f9fa', border: '1px dashed #ccc' }}>
-                <div style={{ flex: 1 }}>
-                  <span style={{ fontSize: 11, color: '#888' }}>לא נשמר</span>
-                  <strong style={{ display: 'block' }}>{savedQuestions.length + i + 1}. {q.text}</strong>
-                  <div>{q.options.map(o => (
-                    <span key={o.digit} style={{ marginLeft: 8, fontSize: 13, color: o.digit === q.correctAnswer ? '#28a745' : '#666' }}>
-                      {o.digit === q.correctAnswer ? '✓' : '○'} {o.text}
-                    </span>
-                  ))}</div>
+            {/* Participants list */}
+            <div style={s.card}>
+              <h3>משתתפים רשומים ({participants.length})</h3>
+              {participants.length === 0 && <p style={{ color: '#888', textAlign: 'center', padding: 20 }}>אין משתתפים עדיין</p>}
+              {participants.map((p, i) => (
+                <div key={p.id} style={s.qRow}>
+                  <span style={{ width: 28, color: '#888', fontSize: 14 }}>{i + 1}.</span>
+                  <div style={{ flex: 1 }}>
+                    <strong>{p.name}</strong>
+                    <span style={{ marginRight: 12, color: '#666', fontSize: 14, direction: 'ltr', display: 'inline-block' }}>{p.phone}</span>
+                  </div>
+                  <button onClick={() => handleDeleteParticipant(p.id)} style={s.removeBtn}>✕</button>
                 </div>
-                <button onClick={() => setPendingQuestions(prev => prev.filter((_, j) => j !== i))} style={styles.removeBtn}>✕</button>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
 }
 
-const styles: Record<string, React.CSSProperties> = {
+const s: Record<string, React.CSSProperties> = {
   page: { minHeight: '100vh', background: '#f5f5f5', direction: 'rtl' },
   nav: { background: '#fff', padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
   backBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: 15, color: '#007bff' },
   title: { fontSize: 18, fontWeight: 'bold' },
   startBtn: { background: '#28a745', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 4, cursor: 'pointer', fontSize: 15 },
+  tabs: { background: '#fff', borderBottom: '1px solid #ddd', display: 'flex', padding: '0 24px' },
+  tab: { background: 'none', border: 'none', padding: '14px 20px', cursor: 'pointer', fontSize: 15, color: '#666', borderBottom: '3px solid transparent' },
+  tabActive: { color: '#007bff', borderBottom: '3px solid #007bff', fontWeight: 'bold' },
   container: { maxWidth: 1100, margin: '24px auto', padding: '0 16px' },
   split: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 },
   card: { background: '#fff', padding: 24, borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },

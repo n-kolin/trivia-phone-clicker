@@ -102,14 +102,39 @@ export interface CallStatusEvent {
   callStatus: 'completed' | 'busy' | 'no-answer' | 'failed';
 }
 
+export interface Participant {
+  id: string;
+  quizId: string;
+  name: string;
+  phone: string;
+  createdAt: Date;
+}
+
+export interface ParticipantScore {
+  participantId: string;
+  name: string;
+  totalPoints: number;
+  correctAnswers: number;
+}
+
+export interface LeaderboardEntry {
+  rank: number;
+  participantId: string;
+  name: string;
+  totalPoints: number;
+  correctAnswers: number;
+}
+
 // WebSocket server events
 export interface ServerEvents {
   'quiz:participant-count': { count: number };
   'quiz:results-update': QuestionResults;
-  'quiz:question-activated': { questionId: string; question: Question };
+  'quiz:question-activated': { questionId: string; question: Question; questionIndex: number; totalQuestions: number; timerSeconds: number };
+  'quiz:timer-tick': { secondsLeft: number };
   'quiz:question-stopped': { questionId: string };
-  'quiz:answer-revealed': { questionId: string; correctAnswer: number };
-  'quiz:ended': void;
+  'quiz:answer-revealed': { questionId: string; correctAnswer: number; correctCount: number; totalAnswered: number };
+  'quiz:leaderboard': { entries: LeaderboardEntry[] };
+  'quiz:ended': { winner: LeaderboardEntry | null };
 }
 
 // API error type

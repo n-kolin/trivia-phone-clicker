@@ -7,6 +7,8 @@ import QuizEditPage from './pages/QuizEditPage';
 import DashboardPage from './pages/DashboardPage';
 import ReportsPage from './pages/ReportsPage';
 import DisplayPage from './pages/DisplayPage';
+import RegisterPage from './pages/RegisterPage';
+import LobbyPage from './pages/LobbyPage';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   return localStorage.getItem('token') ? <>{children}</> : <Navigate to="/login" />;
@@ -18,12 +20,14 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/display/:quizId" element={<DisplayPage />} />
+        <Route path="/register/:quizId" element={<RegisterPage />} />
         <Route path="/questions" element={<PrivateRoute><QuestionsPage /></PrivateRoute>} />
         <Route path="/quizzes" element={<PrivateRoute><QuizzesPage /></PrivateRoute>} />
         <Route path="/quiz/:quizId/edit" element={<PrivateRoute><QuizEditPage /></PrivateRoute>} />
+        <Route path="/quiz/:quizId/lobby" element={<PrivateRoute><LobbyPage /></PrivateRoute>} />
         <Route path="/dashboard/:quizId" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
         <Route path="/reports/:quizId" element={<PrivateRoute><ReportsPage /></PrivateRoute>} />
-        <Route path="*" element={<Navigate to="/quizzes" />} />
+        <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </BrowserRouter>
   );

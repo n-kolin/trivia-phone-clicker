@@ -64,12 +64,7 @@ router.post('/call/dtmf', async (req: Request, res: Response) => {
 
       let activeQuestionId: string | null = null;
       if (session) {
-        const quiz = await quizManager.getActiveQuiz();
-        if (quiz) {
-          // קבל את מזהה השאלה הפעילה מה-quizManager
-          const quizState = await getActiveQuestionId(quiz.id);
-          activeQuestionId = quizState;
-        }
+        activeQuestionId = quizManager.getActiveQuestionId(session.quizId);
       }
 
       const result = await dtmfProcessor.processDigit(callSid, digits, activeQuestionId);
@@ -124,21 +119,5 @@ router.post('/call/status', async (req: Request, res: Response) => {
     res.status(200).send('OK');
   }
 });
-
-/**
- * עזר: קבלת מזהה השאלה הפעילה מ-Redis דרך quizManager
- * מכיוון ש-quizManager לא חושף ישירות את activeQuestionId,
- * נשתמש ב-getResults עם שאלה ריקה כדי לקבל את המצב,
- * או נגש ישירות דרך sessionStore
- */
-async function getActiveQuestionId(quizId: string): Promise<string | null> {
-  // נגש ל-Redis ישירות דרך sessionStore
-  const { redis } = await import('../db/sessionStore');
-  const data = await redis.get(`quiz:state:${quizId}`);
-  if (!data) return null;
-  const state = JSON.parse(data) as { activeQuestionId: string | null; questionStatus: string | null };
-  if (state.questionStatus !== 'active') return null;
-  return state.activeQuestionId;
-}
 
 export default router;

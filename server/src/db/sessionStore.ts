@@ -1,73 +1,56 @@
-import Redis from 'ioredis';
 import { SessionRecord } from '@trivia/shared';
-import { config } from '../config';
 
-const redisUrl = config.redisUrl;
-console.log('[Redis] Connecting to:', redisUrl.replace(/:([^@]+)@/, ':***@'));
-console.log('[Redis] URL starts with rediss://', redisUrl.startsWith('rediss://'));
-
-export const redis = redisUrl.startsWith('rediss://')
-  ? new Redis(redisUrl, { tls: { rejectUnauthorized: false } })
-  : new Redis(redisUrl);
-
-redis.on('connect', () => console.log('[Redis] Connected successfully'));
-redis.on('error', (err) => console.error('[Redis] Error:', JSON.stringify(err), err.stack));
+// In-memory session store - no Redis needed for phone sessions
+const sessions = new Map<string, SessionRecord>();
 
 export const SESSION_PREFIX = 'session:';
-export const SESSION_TTL = 86400; // 24 hours in seconds
-
-function sessionKey(callSid: string): string {
-  return `${SESSION_PREFIX}${callSid}`;
-}
 
 export async function createSession(record: SessionRecord): Promise<void> {
-  await redis.set(sessionKey(record.callSid), JSON.stringify(record), 'EX', SESSION_TTL);
+  sessions.set(record.callSid, record);
 }
 
 export async function getSession(callSid: string): Promise<SessionRecord | null> {
-  const data = await redis.get(sessionKey(callSid));
-  if (!data) return null;
-  return JSON.parse(data) as SessionRecord;
+  return sessions.get(callSid) ?? null;
 }
 
 export async function updateSession(callSid: string, updates: Partial<SessionRecord>): Promise<void> {
-  const existing = await getSession(callSid);
+  const existing = sessions.get(callSid);
   if (!existing) return;
-  const updated = { ...existing, ...updates };
-  const ttl = await redis.ttl(sessionKey(callSid));
-  await redis.set(sessionKey(callSid), JSON.stringify(updated), 'EX', ttl > 0 ? ttl : SESSION_TTL);
+  sessions.set(callSid, { ...existing, ...updates });
 }
 
 export async function deleteSession(callSid: string): Promise<void> {
-  await redis.del(sessionKey(callSid));
+  sessions.delete(callSid);
 }
 
 export async function getActiveSessionCount(): Promise<number> {
-  const sessions = await getAllActiveSessions();
-  return sessions.length;
+  let count = 0;
+  for (const s of sessions.values()) {
+    if (s.status === 'active') count++;
+  }
+  return count;
 }
 
 export async function getAllActiveSessions(): Promise<SessionRecord[]> {
-  const keys = await redis.keys(`${SESSION_PREFIX}*`);
-  if (keys.length === 0) return [];
-
-  const values = await redis.mget(...keys);
-  const sessions: SessionRecord[] = [];
-
-  for (const val of values) {
-    if (!val) continue;
-    const session = JSON.parse(val) as SessionRecord;
-    if (session.status === 'active') {
-      sessions.push(session);
-    }
+  const result: SessionRecord[] = [];
+  for (const s of sessions.values()) {
+    if (s.status === 'active') result.push(s);
   }
-
-  return sessions;
+  return result;
 }
 
 export async function closeAllSessions(): Promise<void> {
-  const sessions = await getAllActiveSessions();
-  await Promise.all(
-    sessions.map((s) => updateSession(s.callSid, { status: 'inactive' }))
-  );
+  for (const [key, s] of sessions.entries()) {
+    sessions.set(key, { ...s, status: 'inactive' });
+  }
 }
+
+// Dummy redis export for any code that still imports it
+export const redis = {
+  get: async () => null,
+  set: async () => null,
+  del: async () => null,
+  keys: async () => [],
+  mget: async () => [],
+  on: () => {},
+};

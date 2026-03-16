@@ -38,6 +38,7 @@ export interface SessionRecord {
   status: 'active' | 'inactive';
   connectedAt: string; // ISO string
   answers: Record<string, number>; // questionId -> digit
+  answerTimestamps: Record<string, number>; // questionId -> ms since question started
   answeredCurrentQuestion: boolean;
 }
 
@@ -83,6 +84,29 @@ export interface QuizReport {
   questionReports: QuestionReport[];
 }
 
+export interface Participant {
+  id: string;
+  quizId: string;
+  name: string;
+  phone: string;
+  createdAt: Date;
+}
+
+export interface ParticipantScore {
+  participantId: string;
+  name: string;
+  totalPoints: number;
+  correctAnswers: number;
+}
+
+export interface LeaderboardEntry {
+  rank: number;
+  participantId: string;
+  name: string;
+  totalPoints: number;
+  correctAnswers: number;
+}
+
 // Webhook event types
 export interface IncomingCallEvent {
   callSid: string;
@@ -106,10 +130,13 @@ export interface CallStatusEvent {
 export interface ServerEvents {
   'quiz:participant-count': { count: number };
   'quiz:results-update': QuestionResults;
-  'quiz:question-activated': { questionId: string; question: Question };
+  'quiz:question-activated': { questionId: string; question: Question; questionIndex: number; totalQuestions: number; timerSeconds: number };
+  'quiz:timer-tick': { secondsLeft: number };
   'quiz:question-stopped': { questionId: string };
-  'quiz:answer-revealed': { questionId: string; correctAnswer: number };
-  'quiz:ended': void;
+  'quiz:answer-revealed': { questionId: string; correctAnswer: number; correctCount: number; totalAnswered: number; fastestName: string | null; fastestMs: number | null };
+  'quiz:participant-answered': { name: string; answeredAt: number };
+  'quiz:leaderboard': { entries: LeaderboardEntry[] };
+  'quiz:ended': { winner: LeaderboardEntry | null };
 }
 
 // API error type

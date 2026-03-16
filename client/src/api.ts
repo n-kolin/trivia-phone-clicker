@@ -63,4 +63,25 @@ export async function getReport(quizId: string) {
   return res.json();
 }
 
+export async function getParticipants(quizId: string) {
+  const res = await fetch(`${BASE}/api/quizzes/${quizId}/participants`, { headers: authHeaders() });
+  return res.json();
+}
+
+export async function addParticipant(quizId: string, data: { name: string; phone: string }) {
+  const res = await fetch(`${BASE}/api/quizzes/${quizId}/participants`, {
+    method: 'POST', headers: authHeaders(), body: JSON.stringify(data)
+  });
+  return res.json();
+}
+
+export async function deleteParticipant(quizId: string, pid: string) {
+  await fetch(`${BASE}/api/quizzes/${quizId}/participants/${pid}`, { method: 'DELETE', headers: authHeaders() });
+}
+
+export async function getLeaderboard(quizId: string) {
+  const res = await fetch(`${BASE}/api/quizzes/${quizId}/leaderboard`, { headers: authHeaders() });
+  return res.json();
+}
+
 export const SOCKET_URL = BASE;

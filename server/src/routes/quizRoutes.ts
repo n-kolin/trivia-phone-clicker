@@ -4,6 +4,17 @@ import * as quizManager from '../services/quizManager';
 import { authMiddleware } from '../middleware/authMiddleware';
 
 const router = Router();
+
+// Public endpoint - no auth required
+router.get('/:id/public', async (req: Request, res: Response) => {
+  const quiz = await quizRepository.getQuiz(req.params.id);
+  if (!quiz) {
+    res.status(404).json({ message: 'Quiz not found' });
+    return;
+  }
+  res.json({ id: quiz.id, name: quiz.name, description: quiz.description, status: quiz.status });
+});
+
 router.use(authMiddleware);
 
 router.get('/', async (_req: Request, res: Response) => {
@@ -60,7 +71,7 @@ router.put('/:id/questions/reorder', async (req: Request, res: Response) => {
 });
 
 router.post('/:id/start', async (req: Request, res: Response) => {
-  await quizRepository.updateQuizStatus(req.params.id, 'active');
+  await quizManager.startQuiz(req.params.id);
   res.json({ message: 'Quiz started' });
 });
 

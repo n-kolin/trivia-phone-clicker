@@ -54,3 +54,23 @@ CREATE TABLE login_attempts (
   attempt_at TIMESTAMPTZ DEFAULT NOW(),
   success BOOLEAN NOT NULL
 );
+
+CREATE TABLE participants (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  quiz_id UUID REFERENCES quizzes(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  phone VARCHAR(50) NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE participant_scores (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  participant_id UUID REFERENCES participants(id) ON DELETE CASCADE,
+  quiz_id UUID REFERENCES quizzes(id) ON DELETE CASCADE,
+  question_id UUID REFERENCES questions(id),
+  answer INT,
+  is_correct BOOLEAN DEFAULT FALSE,
+  points INT DEFAULT 0,
+  answered_at_ms INT, -- milliseconds since question started
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);

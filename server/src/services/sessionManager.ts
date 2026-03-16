@@ -19,6 +19,7 @@ export async function createSession(
     status: 'active',
     connectedAt: new Date().toISOString(),
     answers: {},
+    answerTimestamps: {},
     answeredCurrentQuestion: false,
   };
 
@@ -33,16 +34,17 @@ export async function getSession(callSid: string): Promise<SessionRecord | null>
 export async function recordAnswer(
   callSid: string,
   questionId: string,
-  digit: number
+  digit: number,
+  elapsedMs: number
 ): Promise<void> {
   const session = await sessionStore.getSession(callSid);
   if (!session) return;
 
-  // אידמפוטנטי: אם כבר ענה לשאלה הנוכחית, התעלם
   if (session.answeredCurrentQuestion) return;
 
   await sessionStore.updateSession(callSid, {
     answers: { ...session.answers, [questionId]: digit },
+    answerTimestamps: { ...session.answerTimestamps, [questionId]: elapsedMs },
     answeredCurrentQuestion: true,
   });
 }
