@@ -1,4 +1,4 @@
-import { SessionRecord } from '@trivia/shared';
+import { SessionRecord } from '../types';
 
 // In-memory session store - no Redis needed for phone sessions
 const sessions = new Map<string, SessionRecord>();

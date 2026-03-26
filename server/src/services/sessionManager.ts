@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { SessionRecord } from '@trivia/shared';
+import { SessionRecord } from '../types';
 import * as sessionStore from '../db/sessionStore';
 
 function hashCallerNumber(callerNumber: string): string {

@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import * as questionRepository from '../repositories/questionRepository';
 import { authMiddleware } from '../middleware/authMiddleware';
-import { ApiError, ErrorCodes } from '@trivia/shared';
+import { ApiError, ErrorCodes } from '../types';
 
 const router = Router();
 router.use(authMiddleware);

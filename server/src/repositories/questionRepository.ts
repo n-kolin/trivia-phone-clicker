@@ -1,4 +1,4 @@
-import { Question, AnswerOption, ApiError, ErrorCodes } from '@trivia/shared';
+import { Question, AnswerOption, ApiError, ErrorCodes } from '../types';
 import { query } from '../db/db';
 
 export interface CreateQuestionDto {

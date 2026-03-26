@@ -1,5 +1,5 @@
 import { query } from '../db/db';
-import { QuizReport, QuestionReport } from '@trivia/shared';
+import { QuizReport, QuestionReport } from '../types';
 
 export async function saveQuizReport(report: QuizReport): Promise<void> {
   await query(

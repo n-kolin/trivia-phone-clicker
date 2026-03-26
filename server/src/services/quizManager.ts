@@ -1,5 +1,5 @@
 import { Server } from 'socket.io';
-import { Quiz, Question, QuestionResults, LeaderboardEntry } from '@trivia/shared';
+import { Quiz, Question, QuestionResults, LeaderboardEntry } from '../types';
 import * as quizRepository from '../repositories/quizRepository';
 import * as questionRepository from '../repositories/questionRepository';
 import * as sessionManager from './sessionManager';
