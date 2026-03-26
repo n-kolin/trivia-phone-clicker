@@ -38,6 +38,7 @@ export interface SessionRecord {
   status: 'active' | 'inactive';
   connectedAt: string;
   answers: Record<string, number>;
+  answerTimestamps: Record<string, number>;
   answeredCurrentQuestion: boolean;
 }
 
@@ -99,6 +100,14 @@ export interface DtmfEvent {
 export interface CallStatusEvent {
   callSid: string;
   callStatus: 'completed' | 'busy' | 'no-answer' | 'failed';
+}
+
+export interface LeaderboardEntry {
+  rank: number;
+  participantId: string;
+  name: string;
+  totalPoints: number;
+  correctAnswers: number;
 }
 
 export interface ApiError {
