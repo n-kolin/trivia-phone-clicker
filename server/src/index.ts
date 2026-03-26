@@ -66,8 +66,11 @@ io.on('connection', (socket) => {
   });
 });
 
-httpServer.listen(config.port, () => {
+httpServer.listen(config.port, '0.0.0.0', () => {
   console.log(`Server running on port ${config.port}`);
+  console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
+  console.log(`DATABASE_URL set: ${!!process.env.DATABASE_URL}`);
+  console.log(`REDIS_URL set: ${!!process.env.REDIS_URL}`);
 });
 
 process.on('unhandledRejection', (reason) => {
